@@ -1,256 +1,173 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, MapPin, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { X } from 'lucide-react';
 
-const BookingForm = () => {
-  const [date, setDate] = useState<Date>();
-  const [formData, setFormData] = useState({
-    guestName: '',
-    guestPhone: '',
-    guestEmail: '',
-    pickupLocation: '',
-    dropoffLocation: '',
-    vehicleType: '',
-    time: '',
-    reference: '',
-    specialRequests: ''
-  });
+interface BookingFormProps {
+  companyId?: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!date || !formData.guestName || !formData.pickupLocation || !formData.dropoffLocation || !formData.vehicleType || !formData.time) {
+const BookingForm = ({ companyId, onClose, onSuccess }: BookingFormProps) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      
+      // Generate booking number
+      const { data: bookingNumber, error: numberError } = await supabase
+        .rpc('generate_booking_number');
+
+      if (numberError) throw numberError;
+
+      const bookingData = {
+        booking_number: bookingNumber,
+        company_id: companyId,
+        guest_name: formData.get('guestName') as string,
+        guest_phone: formData.get('guestPhone') as string,
+        guest_email: formData.get('guestEmail') as string,
+        pickup_location: formData.get('pickupLocation') as string,
+        dropoff_location: formData.get('dropoffLocation') as string,
+        pickup_datetime: new Date(formData.get('pickupDateTime') as string).toISOString(),
+        vehicle_type_requested: formData.get('vehicleType') as string,
+        special_instructions: formData.get('specialInstructions') as string,
+        estimated_duration: parseInt(formData.get('estimatedDuration') as string) || null,
+        estimated_distance: parseFloat(formData.get('estimatedDistance') as string) || null,
+        fare_amount: parseFloat(formData.get('fareAmount') as string) || null,
+      };
+
+      const { error } = await supabase
+        .from('bookings')
+        .insert([bookingData]);
+
+      if (error) throw error;
+
       toast({
-        title: "Incomplete Form",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
+        title: 'Success!',
+        description: `Booking ${bookingNumber} created successfully`,
       });
-      return;
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error creating booking:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
-
-    // Here you would typically send the booking request to vendors
-    toast({
-      title: "Booking Request Sent!",
-      description: "Your booking request has been sent to available vendors.",
-    });
-
-    // Reset form
-    setFormData({
-      guestName: '',
-      guestPhone: '',
-      guestEmail: '',
-      pickupLocation: '',
-      dropoffLocation: '',
-      vehicleType: '',
-      time: '',
-      reference: '',
-      specialRequests: ''
-    });
-    setDate(undefined);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5 text-blue-600" />
-          New Booking Request
-        </CardTitle>
-        <CardDescription>
-          Create a new cab booking request for your organization
-        </CardDescription>
-      </CardHeader>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">New Booking</h2>
+        <Button onClick={onClose} variant="ghost" size="sm">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Guest Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Guest Information</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="guestName">Guest Name *</Label>
-                <Input
-                  id="guestName"
-                  value={formData.guestName}
-                  onChange={(e) => handleInputChange('guestName', e.target.value)}
-                  placeholder="Enter guest name"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="guestPhone">Phone Number</Label>
-                <Input
-                  id="guestPhone"
-                  type="tel"
-                  value={formData.guestPhone}
-                  onChange={(e) => handleInputChange('guestPhone', e.target.value)}
-                  placeholder="Enter phone number"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="guestEmail">Email</Label>
-                <Input
-                  id="guestEmail"
-                  type="email"
-                  value={formData.guestEmail}
-                  onChange={(e) => handleInputChange('guestEmail', e.target.value)}
-                  placeholder="Enter email address"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reference">Reference/Department</Label>
-                <Input
-                  id="reference"
-                  value={formData.reference}
-                  onChange={(e) => handleInputChange('reference', e.target.value)}
-                  placeholder="Department or reference"
-                />
-              </div>
-            </div>
-
-            {/* Trip Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Trip Details</h3>
-              
-              <div className="space-y-2">
-                <Label>Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="time">Time *</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vehicleType">Vehicle Type *</Label>
-                <Select value={formData.vehicleType} onValueChange={(value) => handleInputChange('vehicleType', value)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select vehicle type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hatchback">Hatchback</SelectItem>
-                    <SelectItem value="sedan">Sedan</SelectItem>
-                    <SelectItem value="suv">SUV</SelectItem>
-                    <SelectItem value="luxury">Luxury</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Location Details</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pickupLocation">Pickup Location *</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="pickupLocation"
-                    value={formData.pickupLocation}
-                    onChange={(e) => handleInputChange('pickupLocation', e.target.value)}
-                    placeholder="Enter pickup location"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dropoffLocation">Dropoff Location *</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="dropoffLocation"
-                    value={formData.dropoffLocation}
-                    onChange={(e) => handleInputChange('dropoffLocation', e.target.value)}
-                    placeholder="Enter dropoff location"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Special Requests */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="specialRequests">Special Requests</Label>
-            <Textarea
-              id="specialRequests"
-              value={formData.specialRequests}
-              onChange={(e) => handleInputChange('specialRequests', e.target.value)}
-              placeholder="Any special requirements or notes..."
-              rows={3}
+            <Label htmlFor="guestName">Guest Name *</Label>
+            <Input id="guestName" name="guestName" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="guestPhone">Guest Phone *</Label>
+            <Input id="guestPhone" name="guestPhone" type="tel" required />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="guestEmail">Guest Email</Label>
+          <Input id="guestEmail" name="guestEmail" type="email" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="pickupLocation">Pickup Location *</Label>
+            <Input id="pickupLocation" name="pickupLocation" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dropoffLocation">Drop-off Location *</Label>
+            <Input id="dropoffLocation" name="dropoffLocation" required />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="pickupDateTime">Pickup Date & Time *</Label>
+            <Input 
+              id="pickupDateTime" 
+              name="pickupDateTime" 
+              type="datetime-local" 
+              required 
             />
           </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-4">
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              Send Booking Request
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="vehicleType">Vehicle Type</Label>
+            <Select name="vehicleType">
+              <SelectTrigger>
+                <SelectValue placeholder="Select vehicle type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sedan">Sedan</SelectItem>
+                <SelectItem value="hatchback">Hatchback</SelectItem>
+                <SelectItem value="suv">SUV</SelectItem>
+                <SelectItem value="luxury">Luxury</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="estimatedDuration">Estimated Duration (mins)</Label>
+            <Input id="estimatedDuration" name="estimatedDuration" type="number" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="estimatedDistance">Estimated Distance (km)</Label>
+            <Input id="estimatedDistance" name="estimatedDistance" type="number" step="0.1" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fareAmount">Fare Amount</Label>
+            <Input id="fareAmount" name="fareAmount" type="number" step="0.01" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="specialInstructions">Special Instructions</Label>
+          <Textarea 
+            id="specialInstructions" 
+            name="specialInstructions" 
+            placeholder="Any special requirements or instructions..."
+          />
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Creating Booking...' : 'Create Booking'}
+          </Button>
+          <Button type="button" onClick={onClose} variant="outline">
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 

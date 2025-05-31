@@ -1,427 +1,350 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Plus, Search, Phone, Mail, Calendar, Car } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Plus, Edit, Trash2, User, Phone, Mail, Star } from 'lucide-react';
 
-const DriverManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newDriver, setNewDriver] = useState({
-    employeeId: '',
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    licenseNumber: '',
-    panNumber: '',
-    aadharNumber: '',
-    dateOfJoining: '',
-    vehicleType: '',
-    vehicleNumber: '',
-    salary: '',
-    department: '',
-    accountNumber: '',
-    ifscCode: ''
-  });
+interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  license_number: string;
+  license_expiry?: string;
+  address?: string;
+  experience_years: number;
+  rating: number;
+  is_available: boolean;
+  is_active: boolean;
+}
 
-  // Mock driver data
-  const mockDrivers = [
-    {
-      employeeId: 'EMP001',
-      name: 'Rajesh Kumar',
-      phone: '+91 98765 43210',
-      email: 'rajesh.kumar@vendor.com',
-      address: 'H-123, Sector 15, Gurgaon',
-      licenseNumber: 'DL1420110012345',
-      panNumber: 'ABCPK1234D',
-      aadharNumber: '1234 5678 9012',
-      dateOfJoining: '2023-01-15',
-      vehicleType: 'Sedan',
-      vehicleNumber: 'DL 01 AB 1234',
-      salary: '25000',
-      department: 'Transport',
-      accountNumber: '1234567890',
-      ifscCode: 'SBIN0001234',
-      status: 'active'
-    },
-    {
-      employeeId: 'EMP002',
-      name: 'Amit Singh',
-      phone: '+91 98765 43211',
-      email: 'amit.singh@vendor.com',
-      address: 'B-456, Sector 22, Delhi',
-      licenseNumber: 'DL1420110012346',
-      panNumber: 'DEFAS5678E',
-      aadharNumber: '2345 6789 0123',
-      dateOfJoining: '2023-03-20',
-      vehicleType: 'SUV',
-      vehicleNumber: 'DL 02 CD 5678',
-      salary: '28000',
-      department: 'Transport',
-      accountNumber: '2345678901',
-      ifscCode: 'HDFC0001234',
-      status: 'active'
-    },
-    {
-      employeeId: 'EMP003',
-      name: 'Suresh Sharma',
-      phone: '+91 98765 43212',
-      email: 'suresh.sharma@vendor.com',
-      address: 'C-789, Sector 8, Noida',
-      licenseNumber: 'DL1420110012347',
-      panNumber: 'GHIJK9012F',
-      aadharNumber: '3456 7890 1234',
-      dateOfJoining: '2022-11-10',
-      vehicleType: 'Hatchback',
-      vehicleNumber: 'DL 03 EF 9012',
-      salary: '22000',
-      department: 'Transport',
-      accountNumber: '3456789012',
-      ifscCode: 'ICIC0001234',
-      status: 'active'
+interface DriverManagementProps {
+  vendorId?: string;
+}
+
+const DriverManagement = ({ vendorId }: DriverManagementProps) => {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+
+  useEffect(() => {
+    if (vendorId) {
+      fetchDrivers();
     }
-  ];
+  }, [vendorId]);
 
-  const filteredDrivers = mockDrivers.filter(driver =>
-    driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchDrivers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('vendor_id', vendorId)
+        .order('created_at', { ascending: false });
 
-  const handleAddDriver = () => {
-    if (!newDriver.name || !newDriver.phone || !newDriver.licenseNumber) {
+      if (error) throw error;
+      setDrivers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching drivers:', error);
       toast({
-        title: "Incomplete Form",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load drivers',
+        variant: 'destructive',
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    toast({
-      title: "Driver Added",
-      description: `${newDriver.name} has been added successfully.`,
-    });
-
-    setNewDriver({
-      employeeId: '',
-      name: '',
-      phone: '',
-      email: '',
-      address: '',
-      licenseNumber: '',
-      panNumber: '',
-      aadharNumber: '',
-      dateOfJoining: '',
-      vehicleType: '',
-      vehicleNumber: '',
-      salary: '',
-      department: '',
-      accountNumber: '',
-      ifscCode: ''
-    });
-    setIsAddDialogOpen(false);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setNewDriver(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const driverData = {
+        vendor_id: vendorId,
+        name: formData.get('name') as string,
+        phone: formData.get('phone') as string,
+        email: formData.get('email') as string || null,
+        license_number: formData.get('licenseNumber') as string,
+        license_expiry: formData.get('licenseExpiry') as string || null,
+        address: formData.get('address') as string || null,
+        experience_years: parseInt(formData.get('experienceYears') as string) || 0,
+      };
+
+      if (editingDriver) {
+        const { error } = await supabase
+          .from('drivers')
+          .update(driverData)
+          .eq('id', editingDriver.id);
+
+        if (error) throw error;
+        toast({ title: 'Success!', description: 'Driver updated successfully' });
+      } else {
+        const { error } = await supabase
+          .from('drivers')
+          .insert([driverData]);
+
+        if (error) throw error;
+        toast({ title: 'Success!', description: 'Driver added successfully' });
+      }
+
+      setShowForm(false);
+      setEditingDriver(null);
+      fetchDrivers();
+    } catch (error: any) {
+      console.error('Error saving driver:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleDelete = async (driverId: string) => {
+    if (!confirm('Are you sure you want to delete this driver?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .delete()
+        .eq('id', driverId);
+
+      if (error) throw error;
+      toast({ title: 'Success!', description: 'Driver deleted successfully' });
+      fetchDrivers();
+    } catch (error: any) {
+      console.error('Error deleting driver:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const toggleAvailability = async (driverId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .update({ is_available: !currentStatus })
+        .eq('id', driverId);
+
+      if (error) throw error;
+      fetchDrivers();
+    } catch (error: any) {
+      console.error('Error updating driver availability:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (loading && !showForm) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (showForm) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">
+            {editingDriver ? 'Edit Driver' : 'Add New Driver'}
+          </h3>
+          <Button onClick={() => {
+            setShowForm(false);
+            setEditingDriver(null);
+          }} variant="outline">
+            Cancel
+          </Button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                name="name"
+                required
+                defaultValue={editingDriver?.name}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                defaultValue={editingDriver?.phone}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                defaultValue={editingDriver?.email}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="licenseNumber">License Number *</Label>
+              <Input
+                id="licenseNumber"
+                name="licenseNumber"
+                required
+                defaultValue={editingDriver?.license_number}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="licenseExpiry">License Expiry</Label>
+              <Input
+                id="licenseExpiry"
+                name="licenseExpiry"
+                type="date"
+                defaultValue={editingDriver?.license_expiry}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="experienceYears">Experience (Years)</Label>
+              <Input
+                id="experienceYears"
+                name="experienceYears"
+                type="number"
+                min="0"
+                max="50"
+                defaultValue={editingDriver?.experience_years}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              name="address"
+              defaultValue={editingDriver?.address}
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Saving...' : editingDriver ? 'Update Driver' : 'Add Driver'}
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Driver Management
-            </CardTitle>
-            <CardDescription>
-              Manage your driver details and information
-            </CardDescription>
-          </div>
-          
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Driver
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Driver</DialogTitle>
-                <DialogDescription>
-                  Enter the driver's information below
-                </DialogDescription>
-              </DialogHeader>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Drivers ({drivers.length})</h3>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Driver
+        </Button>
+      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Personal Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Personal Information</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="employeeId">Employee ID *</Label>
-                    <Input
-                      id="employeeId"
-                      value={newDriver.employeeId}
-                      onChange={(e) => handleInputChange('employeeId', e.target.value)}
-                      placeholder="Enter employee ID"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={newDriver.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="Enter full name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      value={newDriver.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newDriver.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      value={newDriver.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      placeholder="Enter address"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfJoining">Date of Joining</Label>
-                    <Input
-                      id="dateOfJoining"
-                      type="date"
-                      value={newDriver.dateOfJoining}
-                      onChange={(e) => handleInputChange('dateOfJoining', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Documents & Employment */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Documents & Employment</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">License Number *</Label>
-                    <Input
-                      id="licenseNumber"
-                      value={newDriver.licenseNumber}
-                      onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                      placeholder="Enter license number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="panNumber">PAN Number</Label>
-                    <Input
-                      id="panNumber"
-                      value={newDriver.panNumber}
-                      onChange={(e) => handleInputChange('panNumber', e.target.value)}
-                      placeholder="Enter PAN number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="aadharNumber">Aadhar Number</Label>
-                    <Input
-                      id="aadharNumber"
-                      value={newDriver.aadharNumber}
-                      onChange={(e) => handleInputChange('aadharNumber', e.target.value)}
-                      placeholder="Enter Aadhar number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="vehicleType">Vehicle Type</Label>
-                    <Input
-                      id="vehicleType"
-                      value={newDriver.vehicleType}
-                      onChange={(e) => handleInputChange('vehicleType', e.target.value)}
-                      placeholder="Enter vehicle type"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="vehicleNumber">Vehicle Number</Label>
-                    <Input
-                      id="vehicleNumber"
-                      value={newDriver.vehicleNumber}
-                      onChange={(e) => handleInputChange('vehicleNumber', e.target.value)}
-                      placeholder="Enter vehicle number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="salary">Salary</Label>
-                    <Input
-                      id="salary"
-                      type="number"
-                      value={newDriver.salary}
-                      onChange={(e) => handleInputChange('salary', e.target.value)}
-                      placeholder="Enter salary"
-                    />
-                  </div>
-                </div>
-
-                {/* Banking Details */}
-                <div className="md:col-span-2 space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Banking Details</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="accountNumber">Account Number</Label>
-                      <Input
-                        id="accountNumber"
-                        value={newDriver.accountNumber}
-                        onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                        placeholder="Enter account number"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="ifscCode">IFSC Code</Label>
-                      <Input
-                        id="ifscCode"
-                        value={newDriver.ifscCode}
-                        onChange={(e) => handleInputChange('ifscCode', e.target.value)}
-                        placeholder="Enter IFSC code"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddDriver} className="bg-green-600 hover:bg-green-700">
-                  Add Driver
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+      {drivers.length === 0 ? (
+        <div className="text-center py-8">
+          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No drivers added yet</p>
+          <Button onClick={() => setShowForm(true)} className="mt-4">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Driver
+          </Button>
         </div>
-      </CardHeader>
-
-      <CardContent>
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search drivers by name, ID, or vehicle number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Drivers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDrivers.map((driver) => (
-            <Card key={driver.employeeId} className="hover:shadow-md transition-shadow">
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {drivers.map((driver) => (
+            <Card key={driver.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 rounded-full p-2">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{driver.name}</CardTitle>
-                      <p className="text-sm text-gray-500">{driver.employeeId}</p>
-                    </div>
+                  <CardTitle className="text-lg">{driver.name}</CardTitle>
+                  <div className="flex gap-2">
+                    <Badge
+                      variant={driver.is_available ? 'default' : 'secondary'}
+                      className="cursor-pointer"
+                      onClick={() => toggleAvailability(driver.id, driver.is_available)}
+                    >
+                      {driver.is_available ? 'Available' : 'Unavailable'}
+                    </Badge>
                   </div>
-                  <Badge className="bg-green-100 text-green-800">
-                    {driver.status}
-                  </Badge>
                 </div>
               </CardHeader>
-              
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span>{driver.phone}</span>
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  {driver.phone}
                 </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="truncate">{driver.email}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <Car className="h-4 w-4 text-gray-400" />
-                  <span>{driver.vehicleType} - {driver.vehicleNumber}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span>Joined: {driver.dateOfJoining}</span>
-                </div>
-
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">License:</span>
-                    <span className="font-medium">{driver.licenseNumber}</span>
+                {driver.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    {driver.email}
                   </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span className="text-gray-600">Salary:</span>
-                    <span className="font-medium">₹{driver.salary}</span>
-                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  {driver.rating?.toFixed(1) || '0.0'} • {driver.experience_years} years exp
+                </div>
+                <p className="text-xs text-gray-500">
+                  License: {driver.license_number}
+                  {driver.license_expiry && (
+                    <span> (expires: {new Date(driver.license_expiry).toLocaleDateString()})</span>
+                  )}
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => {
+                      setEditingDriver(driver);
+                      setShowForm(true);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => handleDelete(driver.id)}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-
-        {filteredDrivers.length === 0 && (
-          <div className="text-center py-8">
-            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No drivers found</h3>
-            <p className="text-gray-500">
-              {searchTerm 
-                ? 'Try adjusting your search criteria.'
-                : 'No drivers have been added yet.'
-              }
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 

@@ -1,242 +1,214 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/lib/supabase';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { 
-  Car, 
-  Users, 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
-  XCircle,
-  BarChart3,
-  LogOut,
-  Bell,
-  UserPlus,
-  CarIcon
-} from 'lucide-react';
+import { Car, Users, MapPin, Star, LogOut, User as UserIcon, Plus } from 'lucide-react';
 import BookingsList from '@/components/booking/BookingsList';
-import DriverManagement from '@/components/vendor/DriverManagement';
 import VehicleManagement from '@/components/vendor/VehicleManagement';
+import DriverManagement from '@/components/vendor/DriverManagement';
+
+interface VendorData {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  rating: number;
+  total_bookings: number;
+}
 
 interface VendorDashboardProps {
   user: User;
 }
 
 const VendorDashboard = ({ user }: VendorDashboardProps) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [vendorData, setVendorData] = useState<VendorData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchVendorData();
+  }, [user.id]);
+
+  const fetchVendorData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      setVendorData(data);
+    } catch (error: any) {
+      console.error('Error fetching vendor data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load vendor information',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
-  const mockStats = {
-    totalBookings: 89,
-    pendingRequests: 3,
-    completedBookings: 82,
-    cancelledBookings: 4,
-    activeDrivers: 8,
-    activeVehicles: 12
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-green-600 rounded-lg p-2">
-                <Car className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">CabBooking Pro</h1>
-                <p className="text-sm text-gray-500">Vendor Dashboard</p>
-              </div>
+      <header className="bg-white border-b border-gray-200 px-4 py-4">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <Car className="h-6 w-6 text-green-600" />
             </div>
-            
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                <Bell className="h-4 w-4 mr-2" />
-                <Badge className="ml-1 bg-red-500 text-white text-xs px-1">3</Badge>
-                Requests
-              </Button>
-              <div className="text-sm text-gray-600">
-                Welcome, {user.email}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                {vendorData?.name || 'Vendor Dashboard'}
+              </h1>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-600">{vendorData?.email}</p>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  {vendorData?.rating?.toFixed(1) || '0.0'}
+                </Badge>
               </div>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
             </div>
           </div>
+          <Button onClick={handleSignOut} variant="outline" size="sm">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm mb-8 overflow-x-auto">
-          {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'bookings', label: 'All Bookings', icon: Car },
-            { id: 'drivers', label: 'Drivers', icon: Users },
-            { id: 'vehicles', label: 'Vehicles', icon: CarIcon },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-green-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <MapPin className="h-8 w-8 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">New Requests</p>
+                  <p className="text-2xl font-bold">0</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Car className="h-8 w-8 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Active Trips</p>
+                  <p className="text-2xl font-bold">0</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Users className="h-8 w-8 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Total Bookings</p>
+                  <p className="text-2xl font-bold">{vendorData?.total_bookings || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Star className="h-8 w-8 text-yellow-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Rating</p>
+                  <p className="text-2xl font-bold">{vendorData?.rating?.toFixed(1) || '0.0'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Content */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm">Total Bookings</p>
-                      <p className="text-3xl font-bold">{mockStats.totalBookings}</p>
-                    </div>
-                    <Car className="h-8 w-8 text-blue-200" />
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="bookings" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="bookings">Booking Requests</TabsTrigger>
+            <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+            <TabsTrigger value="drivers">Drivers</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
 
-              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm">Pending Requests</p>
-                      <p className="text-3xl font-bold">{mockStats.pendingRequests}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-orange-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-green-100 text-sm">Completed</p>
-                      <p className="text-3xl font-bold">{mockStats.completedBookings}</p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-green-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-purple-100 text-sm">Active Drivers</p>
-                      <p className="text-3xl font-bold">{mockStats.activeDrivers}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-purple-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-indigo-100 text-sm">Active Vehicles</p>
-                      <p className="text-3xl font-bold">{mockStats.activeVehicles}</p>
-                    </div>
-                    <CarIcon className="h-8 w-8 text-indigo-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-red-100 text-sm">Cancelled</p>
-                      <p className="text-3xl font-bold">{mockStats.cancelledBookings}</p>
-                    </div>
-                    <XCircle className="h-8 w-8 text-red-200" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Pending Requests */}
+          <TabsContent value="bookings">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Pending Booking Requests
-                </CardTitle>
-                <CardDescription>
-                  New booking requests that require your response
-                </CardDescription>
+                <CardTitle>Pending Booking Requests</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { id: 'R001', company: 'TechCorp Ltd', guest: 'John Smith', pickup: 'Office Complex A', dropoff: 'Airport', time: '4:00 PM', type: 'Sedan' },
-                    { id: 'R002', company: 'Innovation Inc', guest: 'Sarah Johnson', pickup: 'Hotel Grand', dropoff: 'Conference Center', time: '6:30 PM', type: 'SUV' },
-                    { id: 'R003', company: 'Global Solutions', guest: 'Mike Davis', pickup: 'Airport', dropoff: 'Office Complex B', time: '8:00 AM', type: 'Hatchback' },
-                  ].map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-orange-100 rounded-lg p-2">
-                          <Car className="h-5 w-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{request.guest}</h4>
-                          <p className="text-sm text-gray-600">{request.company}</p>
-                          <p className="text-sm text-gray-600">{request.pickup} → {request.dropoff}</p>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-2">
-                        <div>
-                          <Badge variant="outline">{request.type}</Badge>
-                          <p className="text-sm text-gray-500">{request.time}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                            Reject
-                          </Button>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            Accept
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <BookingsList userRole="vendor" />
               </CardContent>
             </Card>
-          </div>
-        )}
+          </TabsContent>
 
-        {activeTab === 'bookings' && <BookingsList userType="vendor" />}
-        {activeTab === 'drivers' && <DriverManagement />}
-        {activeTab === 'vehicles' && <VehicleManagement />}
+          <TabsContent value="vehicles">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Vehicle Management</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <VehicleManagement vendorId={vendorData?.id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="drivers">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Driver Management</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <DriverManagement vendorId={vendorData?.id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BookingsList userRole="vendor" showHistory={true} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
