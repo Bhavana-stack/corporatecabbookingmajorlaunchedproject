@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,13 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Car } from 'lucide-react';
 
+type VehicleType = 'sedan' | 'hatchback' | 'suv' | 'luxury';
+
 interface Vehicle {
   id: string;
   registration_number: string;
   model: string;
   make: string;
   year: number;
-  vehicle_type: string;
+  vehicle_type: VehicleType;
   color: string;
   capacity: number;
   is_available: boolean;
@@ -34,12 +35,21 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | ''>('');
 
   useEffect(() => {
     if (vendorId) {
       fetchVehicles();
     }
   }, [vendorId]);
+
+  useEffect(() => {
+    if (editingVehicle) {
+      setSelectedVehicleType(editingVehicle.vehicle_type);
+    } else {
+      setSelectedVehicleType('');
+    }
+  }, [editingVehicle]);
 
   const fetchVehicles = async () => {
     try {
@@ -75,7 +85,7 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
         model: formData.get('model') as string,
         make: formData.get('make') as string,
         year: parseInt(formData.get('year') as string),
-        vehicle_type: formData.get('vehicleType') as string,
+        vehicle_type: selectedVehicleType as VehicleType,
         color: formData.get('color') as string,
         capacity: parseInt(formData.get('capacity') as string),
         insurance_expiry: formData.get('insuranceExpiry') as string || null,
@@ -93,7 +103,7 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
       } else {
         const { error } = await supabase
           .from('vehicles')
-          .insert([vehicleData]);
+          .insert(vehicleData);
 
         if (error) throw error;
         toast({ title: 'Success!', description: 'Vehicle added successfully' });
@@ -101,6 +111,7 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
 
       setShowForm(false);
       setEditingVehicle(null);
+      setSelectedVehicleType('');
       fetchVehicles();
     } catch (error: any) {
       console.error('Error saving vehicle:', error);
@@ -173,6 +184,7 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
           <Button onClick={() => {
             setShowForm(false);
             setEditingVehicle(null);
+            setSelectedVehicleType('');
           }} variant="outline">
             Cancel
           </Button>
@@ -191,7 +203,11 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleType">Vehicle Type *</Label>
-              <Select name="vehicleType" defaultValue={editingVehicle?.vehicle_type} required>
+              <Select 
+                value={selectedVehicleType} 
+                onValueChange={(value: VehicleType) => setSelectedVehicleType(value)} 
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select vehicle type" />
                 </SelectTrigger>
@@ -280,7 +296,7 @@ const VehicleManagement = ({ vendorId }: VehicleManagementProps) => {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button type="submit" disabled={loading || !selectedVehicleType} className="w-full">
             {loading ? 'Saving...' : editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
           </Button>
         </form>

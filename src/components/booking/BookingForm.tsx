@@ -15,8 +15,11 @@ interface BookingFormProps {
   onSuccess: () => void;
 }
 
+type VehicleType = 'sedan' | 'hatchback' | 'suv' | 'luxury';
+
 const BookingForm = ({ companyId, onClose, onSuccess }: BookingFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | ''>('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,7 +43,7 @@ const BookingForm = ({ companyId, onClose, onSuccess }: BookingFormProps) => {
         pickup_location: formData.get('pickupLocation') as string,
         dropoff_location: formData.get('dropoffLocation') as string,
         pickup_datetime: new Date(formData.get('pickupDateTime') as string).toISOString(),
-        vehicle_type_requested: formData.get('vehicleType') as string,
+        vehicle_type_requested: selectedVehicleType || null,
         special_instructions: formData.get('specialInstructions') as string,
         estimated_duration: parseInt(formData.get('estimatedDuration') as string) || null,
         estimated_distance: parseFloat(formData.get('estimatedDistance') as string) || null,
@@ -49,7 +52,7 @@ const BookingForm = ({ companyId, onClose, onSuccess }: BookingFormProps) => {
 
       const { error } = await supabase
         .from('bookings')
-        .insert([bookingData]);
+        .insert(bookingData);
 
       if (error) throw error;
 
@@ -120,7 +123,7 @@ const BookingForm = ({ companyId, onClose, onSuccess }: BookingFormProps) => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="vehicleType">Vehicle Type</Label>
-            <Select name="vehicleType">
+            <Select value={selectedVehicleType} onValueChange={(value: VehicleType) => setSelectedVehicleType(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select vehicle type" />
               </SelectTrigger>
