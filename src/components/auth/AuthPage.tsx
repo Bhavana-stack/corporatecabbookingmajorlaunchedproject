@@ -1,13 +1,12 @@
-
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Car, Building2, Users, MapPin } from 'lucide-react';
+import { Car, Building2, Users, MapPin, AlertCircle } from 'lucide-react';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,6 +18,16 @@ const AuthPage = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isSupabaseConfigured || !supabase) {
+      toast({
+        title: "Supabase Not Connected",
+        description: "Please connect to Supabase first using the button in the top right.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -92,6 +101,20 @@ const AuthPage = () => {
           <p className="text-blue-100">Corporate Travel Management Platform</p>
         </div>
 
+        {!isSupabaseConfigured && (
+          <div className="bg-orange-100 border border-orange-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-orange-800 font-medium">Supabase Connection Required</p>
+                <p className="text-sm text-orange-700 mt-1">
+                  Please connect to Supabase using the green button in the top right to enable authentication.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-gray-800">
@@ -114,6 +137,7 @@ const AuthPage = () => {
                   placeholder="Enter your email"
                   required
                   className="bg-white border-gray-200"
+                  disabled={!isSupabaseConfigured}
                 />
               </div>
 
@@ -127,6 +151,7 @@ const AuthPage = () => {
                   placeholder="Enter your password"
                   required
                   className="bg-white border-gray-200"
+                  disabled={!isSupabaseConfigured}
                 />
               </div>
 
@@ -134,7 +159,7 @@ const AuthPage = () => {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="role">Account Type</Label>
-                    <Select value={role} onValueChange={setRole} required>
+                    <Select value={role} onValueChange={setRole} required disabled={!isSupabaseConfigured}>
                       <SelectTrigger className="bg-white border-gray-200">
                         <SelectValue placeholder="Select account type" />
                       </SelectTrigger>
@@ -166,6 +191,7 @@ const AuthPage = () => {
                       placeholder={`Enter your ${role === 'vendor' ? 'vendor' : 'company'} name`}
                       required={!isLogin}
                       className="bg-white border-gray-200"
+                      disabled={!isSupabaseConfigured}
                     />
                   </div>
                 </>
@@ -176,7 +202,7 @@ const AuthPage = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
-                disabled={loading}
+                disabled={loading || !isSupabaseConfigured}
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -193,6 +219,7 @@ const AuthPage = () => {
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  disabled={!isSupabaseConfigured}
                 >
                   {isLogin 
                     ? "Don't have an account? Sign up" 
