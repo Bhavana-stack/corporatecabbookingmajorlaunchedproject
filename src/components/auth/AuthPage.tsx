@@ -89,7 +89,7 @@ const AuthPage = () => {
           description: 'Logged in successfully',
         });
       } else {
-        // Signup
+        // Signup without email confirmation
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -98,6 +98,7 @@ const AuthPage = () => {
               role: formData.role,
               company_name: formData.companyName,
             },
+            emailRedirectTo: undefined, // No email confirmation needed
           },
         });
 
@@ -115,16 +116,31 @@ const AuthPage = () => {
           throw error;
         }
 
-        if (data.user && !data.session) {
+        // If signup was successful and user is immediately available (no email confirmation)
+        if (data.user && data.session) {
           toast({
-            title: 'Check Your Email',
-            description: 'Please check your email for verification link before logging in.',
+            title: 'Welcome!',
+            description: 'Your account has been created successfully. Redirecting to your dashboard...',
           });
         } else {
-          toast({
-            title: 'Account Created!',
-            description: 'Your account has been created successfully',
+          // Fallback: try to sign in immediately after signup
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
           });
+
+          if (signInError) {
+            toast({
+              title: 'Account Created',
+              description: 'Your account was created but there was an issue signing you in. Please try logging in manually.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Welcome!',
+              description: 'Your account has been created successfully. Redirecting to your dashboard...',
+            });
+          }
         }
       }
     } catch (error: any) {
