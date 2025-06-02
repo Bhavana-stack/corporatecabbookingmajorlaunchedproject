@@ -66,10 +66,20 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center relative bg-gray-900">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)'
+          }}
+        />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/50" />
+        
+        <div className="text-center relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
         </div>
       </div>
     );
@@ -81,8 +91,18 @@ const Index = () => {
 
   if (!userRole) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="text-center max-w-md mx-auto p-6">
+      <div className="min-h-screen flex items-center justify-center relative bg-gray-900">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)'
+          }}
+        />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/50" />
+        
+        <div className="text-center max-w-md mx-auto p-6 relative z-10 bg-white/95 backdrop-blur-sm rounded-lg">
           <h2 className="text-xl font-semibold mb-4">Setup Required</h2>
           <p className="text-gray-600 mb-4">Please contact your administrator to set up your profile.</p>
         </div>
@@ -91,12 +111,24 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {userRole === 'company' ? (
-        <CompanyDashboard user={user} />
-      ) : (
-        <VendorDashboard user={user} />
-      )}
+    <div className="min-h-screen relative bg-gray-900">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)'
+        }}
+      />
+      {/* Light overlay for dashboard content */}
+      <div className="absolute inset-0 bg-white/10" />
+      
+      <div className="relative z-10">
+        {userRole === 'company' ? (
+          <CompanyDashboard user={user} />
+        ) : (
+          <VendorDashboard user={user} />
+        )}
+      </div>
     </div>
   );
 };

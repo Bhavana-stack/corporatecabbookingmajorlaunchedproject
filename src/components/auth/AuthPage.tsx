@@ -185,8 +185,19 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center relative bg-gray-900 p-4">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)'
+        }}
+      />
+      {/* Overlay for better readability */}
+      <div className="absolute inset-0 bg-black/50" />
+      
+      {/* Content */}
+      <Card className="w-full max-w-md relative z-10 bg-white/95 backdrop-blur-sm border-white/20">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
             {isLogin ? 'Welcome Back' : 'Create Account'}
