@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -8,6 +7,7 @@ import VendorDashboard from '@/components/dashboard/VendorDashboard';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Database } from 'lucide-react';
+import ContactSection from '@/components/contact/ContactSection';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -86,7 +86,12 @@ const Index = () => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    return (
+      <>
+        <AuthPage />
+        <ContactSection />
+      </>
+    );
   }
 
   if (!userRole) {
@@ -106,30 +111,22 @@ const Index = () => {
           <h2 className="text-xl font-semibold mb-4">Setup Required</h2>
           <p className="text-gray-600 mb-4">Please contact your administrator to set up your profile.</p>
         </div>
+        <ContactSection />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative bg-gray-900">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)'
-        }}
-      />
-      {/* Light overlay for dashboard content */}
-      <div className="absolute inset-0 bg-white/10" />
-      
-      <div className="relative z-10">
+    <>
+      <div className="min-h-screen bg-white">
         {userRole === 'company' ? (
           <CompanyDashboard user={user} />
         ) : (
           <VendorDashboard user={user} />
         )}
       </div>
-    </div>
+      <ContactSection />
+    </>
   );
 };
 

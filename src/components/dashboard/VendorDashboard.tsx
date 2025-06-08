@@ -68,144 +68,157 @@ const VendorDashboard = ({ user }: VendorDashboardProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
+    <div className="min-h-screen bg-gray-50/50">
+      {/* Modern Header */}
+      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-lg">
-              <Car className="h-6 w-6 text-green-600" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl modern-gradient flex items-center justify-center">
+              <Car className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
                 {vendorData?.name || 'Vendor Dashboard'}
               </h1>
               <div className="flex items-center gap-2">
-                <p className="text-sm text-gray-600">{vendorData?.email}</p>
-                <Badge variant="outline" className="flex items-center gap-1">
+                <p className="text-sm text-gray-500">{vendorData?.email}</p>
+                <Badge variant="outline" className="flex items-center gap-1 border-yellow-300 text-yellow-700">
                   <Star className="h-3 w-3" />
                   {vendorData?.rating?.toFixed(1) || '0.0'}
                 </Badge>
               </div>
             </div>
           </div>
-          <Button onClick={handleSignOut} variant="outline" size="sm">
+          <Button 
+            onClick={handleSignOut} 
+            variant="outline" 
+            size="sm"
+            className="border-gray-300 hover:bg-gray-50"
+          >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-8 w-8 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">New Requests</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Welcome Section */}
+        <div className="text-center py-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Vendor Dashboard</h2>
+          <p className="text-gray-600">Manage your fleet and bookings efficiently</p>
+        </div>
+
+        {/* Modern Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-blue-200 hover:shadow-lg transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">New Requests</p>
+                <p className="text-3xl font-bold text-blue-600">0</p>
               </div>
-            </CardContent>
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
           </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Car className="h-8 w-8 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Active Trips</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
+
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-green-200 hover:shadow-lg transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Active Trips</p>
+                <p className="text-3xl font-bold text-green-600">0</p>
               </div>
-            </CardContent>
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                <Car className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
           </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-orange-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-bold">{vendorData?.total_bookings || 0}</p>
-                </div>
+
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Bookings</p>
+                <p className="text-3xl font-bold text-orange-600">{vendorData?.total_bookings || 0}</p>
               </div>
-            </CardContent>
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                <Users className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
           </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Star className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Rating</p>
-                  <p className="text-2xl font-bold">{vendorData?.rating?.toFixed(1) || '0.0'}</p>
-                </div>
+
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-yellow-200 hover:shadow-lg transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Rating</p>
+                <p className="text-3xl font-bold text-yellow-600">{vendorData?.rating?.toFixed(1) || '0.0'}</p>
               </div>
-            </CardContent>
+              <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
+                <Star className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
+        {/* Modern Tabs */}
         <Tabs defaultValue="bookings" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="bookings">Booking Requests</TabsTrigger>
-            <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
-            <TabsTrigger value="drivers">Drivers</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm p-1 rounded-xl">
+            <TabsTrigger value="bookings" className="rounded-lg">Booking Requests</TabsTrigger>
+            <TabsTrigger value="vehicles" className="rounded-lg">Vehicles</TabsTrigger>
+            <TabsTrigger value="drivers" className="rounded-lg">Drivers</TabsTrigger>
+            <TabsTrigger value="history" className="rounded-lg">History</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="bookings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Booking Requests</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <TabsContent value="bookings" className="mt-6">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Pending Booking Requests</h3>
+              </div>
+              <div className="p-6">
                 <BookingsList userRole="vendor" />
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="vehicles">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Vehicle Management</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
+          <TabsContent value="vehicles" className="mt-6">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Vehicle Management</h3>
+              </div>
+              <div className="p-6">
                 <VehicleManagement vendorId={vendorData?.id} />
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="drivers">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Driver Management</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
+          <TabsContent value="drivers" className="mt-6">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Driver Management</h3>
+              </div>
+              <div className="p-6">
                 <DriverManagement vendorId={vendorData?.id} />
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Booking History</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <TabsContent value="history" className="mt-6">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Booking History</h3>
+              </div>
+              <div className="p-6">
                 <BookingsList userRole="vendor" showHistory={true} />
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
