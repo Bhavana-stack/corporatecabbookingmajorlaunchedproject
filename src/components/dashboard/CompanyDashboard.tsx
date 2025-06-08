@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Calendar, MapPin, Clock, LogOut, User as UserIcon } from 'lucide-react';
+import { Plus, Calendar, MapPin, Clock, LogOut, User as UserIcon, Phone } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import BookingForm from '@/components/booking/BookingForm';
 import BookingsList from '@/components/booking/BookingsList';
 
@@ -22,6 +22,7 @@ interface CompanyDashboardProps {
 }
 
 const CompanyDashboard = ({ user }: CompanyDashboardProps) => {
+  const navigate = useNavigate();
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -90,15 +91,26 @@ const CompanyDashboard = ({ user }: CompanyDashboardProps) => {
               <p className="text-sm text-gray-500">{companyData?.email}</p>
             </div>
           </div>
-          <Button 
-            onClick={handleSignOut} 
-            variant="outline" 
-            size="sm"
-            className="border-gray-300 hover:bg-gray-50"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={() => navigate('/contact')}
+              variant="outline" 
+              size="sm"
+              className="border-blue-500/30 text-blue-600 hover:bg-blue-50"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Contact Us
+            </Button>
+            <Button 
+              onClick={handleSignOut} 
+              variant="outline" 
+              size="sm"
+              className="border-gray-300 hover:bg-gray-50"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
